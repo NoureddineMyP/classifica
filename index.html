@@ -330,7 +330,14 @@
     // ── CONFIG ────────────────────────────────────────────────────────────────────
     const API_TOKEN = 'f1076751716e48b79c72938870dff476';
     const API_URL = 'https://api.football-data.org/v4/competitions/SA/standings';
-    const PROXY = 'https://corsproxy.io/?';
+
+    // Multiple CORS proxies to try in order
+    const PROXIES = [
+      url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+      url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+      url => `https://thingproxy.freeboard.io/fetch/${url}`,
+      url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    ];
 
     // ── TEAM COLOR MAP ─────────────────────────────────────────────────────────────
     const TEAM_META = {
@@ -353,7 +360,7 @@
       'ACF Fiorentina': { abbr: 'FIO', color: '#502D7F', color2: '#FFFFFF' },
       'US Cremonese': { abbr: 'CRE', color: '#C4122E', color2: '#AFAFAF' },
       'Hellas Verona FC': { abbr: 'VER', color: '#002F87', color2: '#FFD100' },
-      'AC Pisa 1909': { abbr: 'AC', color: '#0055A4', color2: '#000000' },
+      'AC Pisa 1909': { abbr: 'PSA', color: '#0055A4', color2: '#000000' },
       'Venezia FC': { abbr: 'VEN', color: '#FF6600', color2: '#000000' },
       'Empoli FC': { abbr: 'EMP', color: '#0066CC', color2: '#FFFFFF' },
       'AC Monza': { abbr: 'MON', color: '#E60026', color2: '#FFFFFF' },
@@ -507,6 +514,31 @@
     }
     function renderAll() { renderPred(); renderReal(); renderScore(); }
 
+    // ── FETCH WITH PROXY FALLBACK ─────────────────────────────────────────────────
+    async function fetchWithFallback(url, headers) {
+      let lastErr;
+      for (let i = 0; i < PROXIES.length; i++) {
+        const proxyUrl = PROXIES[i](url);
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 8000);
+          const res = await fetch(proxyUrl, {
+            headers,
+            signal: controller.signal
+          });
+          clearTimeout(timeout);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          console.log(`✓ proxy ${i + 1} (${proxyUrl.split('?')[0]}) worked`);
+          return data;
+        } catch (err) {
+          console.warn(`✗ proxy ${i + 1} failed:`, err.message);
+          lastErr = err;
+        }
+      }
+      throw lastErr || new Error('Tutti i proxy hanno fallito');
+    }
+
     // ── FETCH LIVE STANDINGS ──────────────────────────────────────────────────────
     async function fetchStandings() {
       const btn = document.getElementById('btn-refresh');
@@ -517,11 +549,7 @@
       badge.className = 'font-mono text-[.58rem] tracking-[.1em] border rounded px-2 py-0.5 border-yellow/30 text-yellow transition-all duration-300';
 
       try {
-        const res = await fetch(PROXY + encodeURIComponent(API_URL), {
-          headers: { 'X-Auth-Token': API_TOKEN }
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+        const data = await fetchWithFallback(API_URL, { 'X-Auth-Token': API_TOKEN });
 
         const table = data.standings.find(s => s.type === 'TOTAL').table;
         const giornata = data.season?.currentMatchday ?? '—';
