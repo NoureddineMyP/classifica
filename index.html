@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Serie A Pronostici</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap"
+    rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    :root {
+      --bg: #0d0f14;
+      --surface: #13161e;
+      --surface2: #1a1e2a;
+      --border: #252836;
+      --neon: #00ff88;
+      --neon-dim: rgba(0, 255, 136, 0.12);
+      --purple: #b06cff;
+      --purple-dim: rgba(176, 108, 255, 0.12);
+      --yellow: #ffd600;
+      --orange: #ff7b00;
+      --red: #ff2d55;
+      --text: #f0f2ff;
+      --text2: #7a8299;
+      --text3: #454d66;
+      --p1: #00ff88;
+      --p2: #b06cff;
+      --cl: #00ff88;
+      --el: #ffd600;
+      --conf: #ff7b00;
+      --rel: #ff2d55;
+    }
+
+    html {
+      font-size: 16px
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Barlow', sans-serif;
+      min-height: 100vh;
+    }
+
+    /* BG texture */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 10% 20%, rgba(0, 255, 136, 0.04) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 60% at 90% 80%, rgba(176, 108, 255, 0.05) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ─── HEADER ─── */
+    header {
+      position: relative;
+      z-index: 1;
+      padding: 2rem 1.5rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: .5rem;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: baseline;
+      gap: .75rem;
+    }
+
+    .title-main {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: clamp(2.4rem, 5vw, 4rem);
+      font-weight: 900;
+      letter-spacing: -.02em;
+      color: var(--text);
+      text-transform: uppercase;
+    }
+
+    .title-sub {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: clamp(1rem, 2vw, 1.4rem);
+      font-weight: 600;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .6rem;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--neon);
+      background: var(--neon-dim);
+      border: 1px solid rgba(0, 255, 136, 0.2);
+      border-radius: 4px;
+      padding: .25rem .65rem;
+    }
+
+    .header-info {
+      font-size: .75rem;
+      color: var(--text3);
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: .05em;
+      margin-top: .2rem;
+    }
+
+    /* ─── LEGEND ─── */
+    .legend {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: .35rem 1.2rem;
+      justify-content: center;
+      padding: .6rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: .65rem;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: .08em;
+      color: var(--text2);
+      text-transform: uppercase;
+    }
+
+    .leg {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+    }
+
+    .leg-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+
+    /* ─── SCOREBOARD ─── */
+    .scoreboard {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: center;
+      gap: 1px;
+      padding: 1.2rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .score-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: .3rem;
+      padding: .8rem 2rem;
+      min-width: 160px;
+    }
+
+    .score-card:first-child {
+      border-right: 1px solid var(--border);
+    }
+
+    .score-player {
+      font-family: 'Barlow Condensed', monospace;
+      font-size: .65rem;
+      font-weight: 700;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+
+    .score-num {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 3rem;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -.04em;
+    }
+
+    .score-max {
+      font-size: .6rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text3);
+      letter-spacing: .06em;
+    }
+
+    .score-breakdown {
+      font-size: .58rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text2);
+      letter-spacing: .04em;
+      margin-top: .1rem;
+    }
+
+    .p1-color {
+      color: var(--p1);
+    }
+
+    .p2-color {
+      color: var(--p2);
+    }
+
+    .score-vs {
+      display: flex;
+      align-items: center;
+      padding: 0 .5rem;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text3);
+    }
+
+    /* ─── MAIN GRID ─── */
+    .main-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr 240px 1fr;
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 0 .5rem 5rem;
+      gap: 0;
+    }
+
+    .col-divider {
+      background: var(--border);
+      width: 1px;
+      margin: 0 4px;
+    }
+
+    /* ─── COLUMN HEADER ─── */
+    .col-header {
+      padding: .9rem 1rem .5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .col-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .85rem;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .col-hint {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .55rem;
+      color: var(--text3);
+      letter-spacing: .06em;
+    }
+
+    /* ─── TABLE HEAD ─── */
+    .tbl-head {
+      display: grid;
+      grid-template-columns: 46px 1fr 36px 52px;
+      padding: .35rem 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .55rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--text3);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tbl-head-real {
+      display: grid;
+      grid-template-columns: 36px 1fr 36px 36px;
+      padding: .35rem 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .55rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--text3);
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ─── ROWS ─── */
+    .team-row {
+      display: grid;
+      grid-template-columns: 46px 1fr 36px 52px;
+      align-items: center;
+      padding: .46rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      border-left: 2px solid transparent;
+      cursor: grab;
+      user-select: none;
+      transition: background .15s;
+      position: relative;
+    }
+
+    .team-row:hover {
+      background: var(--surface2);
+    }
+
+    .team-row.dragging {
+      opacity: .2;
+      cursor: grabbing;
+    }
+
+    .team-row.drag-over {
+      background: rgba(0, 255, 136, 0.05);
+      border-bottom-color: rgba(0, 255, 136, 0.2);
+    }
+
+    .real-row {
+      display: grid;
+      grid-template-columns: 36px 1fr 36px 36px;
+      align-items: center;
+      padding: .46rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      border-left: 2px solid transparent;
+    }
+
+    /* zone colors */
+    .zone-cl {
+      border-left-color: var(--cl) !important;
+    }
+
+    .zone-el {
+      border-left-color: var(--el) !important;
+    }
+
+    .zone-conf {
+      border-left-color: var(--conf) !important;
+    }
+
+    .zone-rel {
+      border-left-color: var(--rel) !important;
+    }
+
+    /* pos cell */
+    .pos-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      line-height: 1;
+    }
+
+    .pos-n {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text2);
+    }
+
+    .pos-n.top {
+      color: var(--text);
+    }
+
+    .delta-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .48rem;
+      font-weight: 700;
+      margin-top: 1px;
+    }
+
+    .du {
+      color: var(--neon);
+    }
+
+    .dd {
+      color: var(--red);
+    }
+
+    .ds {
+      color: transparent;
+    }
+
+    /* team info */
+    .team-info {
+      display: flex;
+      align-items: center;
+      gap: .55rem;
+      min-width: 0;
+    }
+
+    .logo {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .42rem;
+      font-weight: 700;
+    }
+
+    .tname {
+      font-size: .84rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: -.01em;
+    }
+
+    .team-row.moved .tname {
+      color: inherit;
+    }
+
+    /* pts */
+    .pts {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      text-align: center;
+      color: var(--text);
+    }
+
+    .stat {
+      font-size: .78rem;
+      text-align: center;
+      color: var(--text2);
+    }
+
+    /* score badge per row */
+    .row-score {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .56rem;
+      font-weight: 700;
+    }
+
+    .rs-exact {
+      color: var(--neon);
+    }
+
+    .rs-close {
+      color: var(--yellow);
+    }
+
+    .rs-zone {
+      color: var(--purple);
+    }
+
+    .rs-zero {
+      color: var(--text3);
+    }
+
+    /* handle */
+    .handle {
+      text-align: center;
+      font-size: .75rem;
+      color: var(--text3);
+      transition: color .15s;
+    }
+
+    .team-row:hover .handle {
+      color: var(--text2);
+    }
+
+    /* ─── REAL MIDDLE COLUMN ─── */
+    .real-col {
+      padding: 0;
+    }
+
+    .real-col .col-header {
+      justify-content: center;
+    }
+
+    .real-col-inner {
+      overflow: hidden;
+    }
+
+    /* real delta arrow on middle */
+    .rdelta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .5rem;
+      font-weight: 700;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    /* ─── CONTROLS ─── */
+    .controls {
+      position: fixed;
+      bottom: 1.2rem;
+      right: 1.2rem;
+      display: flex;
+      gap: .5rem;
+      z-index: 100;
+    }
+
+    .ctrl-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .6rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      border-radius: 6px;
+      padding: .42rem .85rem;
+      cursor: pointer;
+      transition: all .2s;
+      border: 1px solid;
+      backdrop-filter: blur(8px);
+    }
+
+    .btn-reset {
+      background: rgba(255, 45, 85, 0.08);
+      border-color: rgba(255, 45, 85, 0.25);
+      color: var(--red);
+    }
+
+    .btn-reset:hover {
+      background: rgba(255, 45, 85, 0.18);
+    }
+
+    .btn-edit {
+      background: rgba(255, 214, 0, 0.08);
+      border-color: rgba(255, 214, 0, 0.25);
+      color: var(--yellow);
+    }
+
+    .btn-edit:hover {
+      background: rgba(255, 214, 0, 0.18);
+    }
+
+    /* ─── EDIT MODAL ─── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      backdrop-filter: blur(6px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.8rem;
+      width: min(500px, 94vw);
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+
+    .modal h2 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 900;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      margin-bottom: 1.2rem;
+    }
+
+    .form-row {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      padding: .4rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .form-row label {
+      font-size: .75rem;
+      color: var(--text2);
+      width: 100px;
+      flex-shrink: 0;
+    }
+
+    .form-row input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: .35rem .6rem;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .72rem;
+      outline: none;
+      transition: border .15s;
+    }
+
+    .form-row input:focus {
+      border-color: rgba(0, 255, 136, .3);
+    }
+
+    .form-section-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--text3);
+      margin: 1rem 0 .4rem;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: .6rem;
+      justify-content: flex-end;
+      margin-top: 1.2rem;
+    }
+
+    .modal-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .65rem;
+      letter-spacing: .08em;
+      border-radius: 6px;
+      padding: .45rem .9rem;
+      cursor: pointer;
+      border: 1px solid;
+      transition: all .2s;
+      text-transform: uppercase;
+    }
+
+    .modal-save {
+      background: var(--neon-dim);
+      border-color: rgba(0, 255, 136, .3);
+      color: var(--neon);
+    }
+
+    .modal-save:hover {
+      background: rgba(0, 255, 136, .2);
+    }
+
+    .modal-cancel {
+      background: transparent;
+      border-color: var(--border);
+      color: var(--text2);
+    }
+
+    .modal-cancel:hover {
+      background: var(--surface2);
+    }
+
+    /* ─── TOAST ─── */
+    .toast-wrap {
+      position: fixed;
+      bottom: 4rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 999;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: rgba(13, 15, 20, .9);
+      border: 1px solid rgba(0, 255, 136, .2);
+      color: var(--neon);
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .62rem;
+      letter-spacing: .06em;
+      padding: .42rem 1rem;
+      opacity: 0;
+      transition: opacity .3s;
+      white-space: nowrap;
+      backdrop-filter: blur(12px);
+    }
+
+    .toast.show {
+      opacity: 1;
+    }
+
+    /* ─── PLAYER NAME EDIT ─── */
+    .player-name {
+      cursor: pointer;
+      border-bottom: 1px dashed rgba(255, 255, 255, .15);
+      transition: border-color .15s;
+    }
+
+    .player-name:hover {
+      border-color: rgba(255, 255, 255, .4);
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(3px)
+      }
+
+      to {
+        opacity: 1;
+        transform: none
+      }
+    }
+
+    .team-row,
+    .real-row {
+      animation: fadeIn .2s ease both;
+    }
+
+    @media(max-width:760px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .col-divider {
+        height: 1px;
+        width: 100%;
+        margin: 4px 0;
+      }
+
+      .score-card {
+        padding: .6rem 1.2rem;
+        min-width: 120px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="title-row">
+      <span class="title-main">Serie A</span>
+      <span class="title-sub">Pronostici</span>
+    </div>
+    <div class="badge">⚽ Stagione 2025/26</div>
+    <div class="header-info">// trascina le squadre · vince chi indovina meglio il finale</div>
+  </header>
+
+  <div class="legend">
+    <span class="leg"><span class="leg-dot" style="background:var(--cl)"></span>Champions (1–4)</span>
+    <span class="leg"><span class="leg-dot" style="background:var(--el)"></span>Europa League (5)</span>
+    <span class="leg"><span class="leg-dot" style="background:var(--conf)"></span>Conference (6)</span>
+    <span class="leg"><span class="leg-dot" style="background:var(--rel)"></span>Retrocessione (18–20)</span>
+  </div>
+
+  <!-- SCOREBOARD -->
+  <div class="scoreboard">
+    <div class="score-card">
+      <div class="score-player p1-color" id="p1-label" style="cursor:pointer" onclick="editName(1)">
+        <span class="player-name">GIOCATORE 1</span>
+      </div>
+      <div class="score-num p1-color" id="score-p1">0</div>
+      <div class="score-breakdown" id="breakdown-p1">—</div>
+      <div class="score-max">/ 60 pt max</div>
+    </div>
+    <div class="score-vs">VS</div>
+    <div class="score-card">
+      <div class="score-player p2-color" id="p2-label" style="cursor:pointer" onclick="editName(2)">
+        <span class="player-name">GIOCATORE 2</span>
+      </div>
+      <div class="score-num p2-color" id="score-p2">0</div>
+      <div class="score-breakdown" id="breakdown-p2">—</div>
+      <div class="score-max">/ 60 pt max</div>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+    <!-- P1 -->
+    <div>
+      <div class="col-header">
+        <span class="col-title p1-color" id="col-p1-title">Giocatore 1</span>
+        <span class="col-hint">trascina ⠿</span>
+      </div>
+      <div class="tbl-head">
+        <div>#/Δ</div>
+        <div>Squadra</div>
+        <div style="text-align:center">Pts</div>
+        <div style="text-align:center">Score</div>
+      </div>
+      <div id="col-p1"></div>
+    </div>
+
+    <div class="col-divider"></div>
+
+    <!-- REAL (center) -->
+    <div class="real-col">
+      <div class="col-header">
+        <span class="col-title" style="color:var(--text2)">Classifica Reale</span>
+      </div>
+      <div class="tbl-head-real">
+        <div>#</div>
+        <div>Squadra</div>
+        <div style="text-align:center">Pts</div>
+        <div style="text-align:center">G</div>
+      </div>
+      <div id="col-real"></div>
+    </div>
+
+    <div class="col-divider"></div>
+
+    <!-- P2 -->
+    <div>
+      <div class="col-header">
+        <span class="col-title p2-color" id="col-p2-title">Giocatore 2</span>
+        <span class="col-hint">trascina ⠿</span>
+      </div>
+      <div class="tbl-head">
+        <div>#/Δ</div>
+        <div>Squadra</div>
+        <div style="text-align:center">Pts</div>
+        <div style="text-align:center">Score</div>
+      </div>
+      <div id="col-p2"></div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <button class="ctrl-btn btn-edit" onclick="openModal()">✎ aggiorna classifica</button>
+    <button class="ctrl-btn btn-reset" onclick="resetAll()">↺ reset</button>
+  </div>
+
+  <!-- EDIT MODAL -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <h2>Aggiorna Classifica Reale</h2>
+      <p style="font-size:.72rem;color:var(--text2);margin-bottom:1rem;">Modifica i punti per aggiornare la classifica
+        alla giornata corrente.</p>
+      <div class="form-section-title">Giornata attuale</div>
+      <div class="form-row">
+        <label>Giornata #</label>
+        <input type="number" id="edit-giornata" value="28" min="1" max="38" />
+      </div>
+      <div class="form-section-title">Punti squadre</div>
+      <div id="edit-form"></div>
+      <div class="modal-actions">
+        <button class="modal-btn modal-cancel" onclick="closeModal()">Annulla</button>
+        <button class="modal-btn modal-save" onclick="saveModal()">Salva</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-wrap">
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script>
+    /* ── DATA ── */
+    const DEFAULT = [
+      { name: "Inter", abbr: "INT", color: "#2288cc", pts: 67, g: 28 },
+      { name: "Milan", abbr: "MIL", color: "#e03030", pts: 60, g: 28 },
+      { name: "Napoli", abbr: "NAP", color: "#1ab0d0", pts: 56, g: 28 },
+      { name: "Como", abbr: "COM", color: "#7799aa", pts: 51, g: 28 },
+      { name: "Roma", abbr: "ROM", color: "#e06020", pts: 51, g: 28 },
+      { name: "Juventus", abbr: "JUV", color: "#dddddd", pts: 50, g: 28 },
+      { name: "Atalanta", abbr: "ATA", color: "#3a6acc", pts: 46, g: 28 },
+      { name: "Bologna", abbr: "BOL", color: "#cc2a3a", pts: 39, g: 28 },
+      { name: "Sassuolo", abbr: "SAS", color: "#22bb55", pts: 38, g: 28 },
+      { name: "Lazio", abbr: "LAZ", color: "#5ab8d8", pts: 37, g: 28 },
+      { name: "Udinese", abbr: "UDI", color: "#aaaaaa", pts: 36, g: 28 },
+      { name: "Parma", abbr: "PAR", color: "#3348aa", pts: 34, g: 28 },
+      { name: "Genoa", abbr: "GEN", color: "#cc3333", pts: 30, g: 28 },
+      { name: "Cagliari", abbr: "CAG", color: "#4a6888", pts: 30, g: 28 },
+      { name: "Torino", abbr: "TOR", color: "#993030", pts: 30, g: 28 },
+      { name: "Lecce", abbr: "LEC", color: "#ddaa00", pts: 27, g: 28 },
+      { name: "Fiorentina", abbr: "FIO", color: "#9b5de5", pts: 25, g: 28 },
+      { name: "Cremonese", abbr: "CRE", color: "#dd2222", pts: 24, g: 28 },
+      { name: "Verona", abbr: "VER", color: "#2244aa", pts: 18, g: 28 },
+      { name: "Pisa", abbr: "PIS", color: "#2244cc", pts: 15, g: 28 },
+    ];
+
+    let real = JSON.parse(JSON.stringify(DEFAULT));
+    let p1 = JSON.parse(JSON.stringify(DEFAULT));
+    let p2 = JSON.parse(JSON.stringify(DEFAULT));
+    let giornata = 28;
+    let players = { p1: "Giocatore 1", p2: "Giocatore 2" };
+
+    /* ── SCORING ── */
+    function zone(pos) {
+      if (pos <= 4) return 'cl';
+      if (pos === 5) return 'el';
+      if (pos === 6) return 'conf';
+      if (pos >= 18) return 'rel';
+      return '';
+    }
+    function realPosMap() {
+      const m = {};
+      real.forEach((t, i) => m[t.name] = i + 1);
+      return m;
+    }
+    function scoreRow(myPos, realPos_) {
+      const diff = Math.abs(myPos - realPos_);
+      let pos_pts = diff === 0 ? 3 : diff === 1 ? 2 : diff === 2 ? 1 : 0;
+      const myZone = zone(myPos);
+      const realZone = zone(realPos_);
+      const zone_pts = (myZone && myZone === realZone) ? 1 : 0;
+      return { pos_pts, zone_pts, total: pos_pts + zone_pts, diff };
+    }
+    function calcScore(pred) {
+      const rpm = realPosMap();
+      let pos_total = 0, zone_total = 0;
+      pred.forEach((t, i) => {
+        const s = scoreRow(i + 1, rpm[t.name]);
+        pos_total += s.pos_pts;
+        zone_total += s.zone_pts;
+      });
+      return { pos_total, zone_total, total: pos_total + zone_total };
+    }
+
+    /* ── RENDER HELPERS ── */
+    function zoneClass(pos) {
+      const z = zone(pos);
+      if (z === 'cl') return 'zone-cl';
+      if (z === 'el') return 'zone-el';
+      if (z === 'conf') return 'zone-conf';
+      if (z === 'rel') return 'zone-rel';
+      return '';
+    }
+    function deltaHtml(diff) {
+      if (diff === 0) return `<span class="delta-tag ds">—</span>`;
+      if (diff > 0) return `<span class="delta-tag du">▲${diff}</span>`;
+      return `<span class="delta-tag dd">▼${Math.abs(diff)}</span>`;
+    }
+    function rowScoreHtml(s) {
+      let cls = s.total === 4 ? 'rs-exact' : s.pos_pts >= 2 ? 'rs-close' : s.total > 0 ? 'rs-zone' : 'rs-zero';
+      return `<div class="row-score"><span class="${cls}">${s.total}pt</span></div>`;
+    }
+
+    /* ── RENDER PLAYER COLUMN ── */
+    function renderPlayer(pred, containerId, player) {
+      const rpm = realPosMap();
+      const el = document.getElementById(containerId);
+      el.innerHTML = '';
+      let dragSrc = null;
+
+      pred.forEach((t, i) => {
+        const pos = i + 1;
+        const rpos = rpm[t.name];
+        const diff = rpos - pos; // positive = moved up vs real
+        const s = scoreRow(pos, rpos);
+        const row = document.createElement('div');
+        row.className = `team-row ${zoneClass(pos)}`;
+        row.draggable = true;
+        row.dataset.idx = i;
+        row.style.animationDelay = `${i * 14}ms`;
+
+        row.innerHTML = `
+      <div class="pos-cell">
+        <span class="pos-n ${pos <= 3 ? 'top' : ''}">${pos}</span>
+        ${deltaHtml(diff)}
+      </div>
+      <div class="team-info">
+        <div class="logo" style="background:${t.color}22;border:1px solid ${t.color}44;color:${t.color}">${t.abbr}</div>
+        <span class="tname">${t.name}</span>
+      </div>
+      <div class="pts">${t.pts}</div>
+      ${rowScoreHtml(s)}`;
+
+        row.addEventListener('dragstart', e => {
+          dragSrc = i; row.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        row.addEventListener('dragend', () => {
+          row.classList.remove('dragging');
+          el.querySelectorAll('.team-row').forEach(r => r.classList.remove('drag-over'));
+        });
+        row.addEventListener('dragover', e => {
+          e.preventDefault();
+          el.querySelectorAll('.team-row').forEach(r => r.classList.remove('drag-over'));
+          row.classList.add('drag-over');
+        });
+        row.addEventListener('drop', e => {
+          e.preventDefault();
+          const target = parseInt(row.dataset.idx);
+          if (dragSrc === null || dragSrc === target) return;
+          const moved = pred.splice(dragSrc, 1)[0];
+          pred.splice(target, 0, moved);
+          dragSrc = null;
+          renderAll();
+          showToast(`${player}: classifica aggiornata`);
+        });
+
+        el.appendChild(row);
+      });
+    }
+
+    /* ── RENDER REAL CENTER ── */
+    function renderReal() {
+      const el = document.getElementById('col-real');
+      el.innerHTML = '';
+      real.forEach((t, i) => {
+        const pos = i + 1;
+        const row = document.createElement('div');
+        row.className = `real-row ${zoneClass(pos)}`;
+        row.style.animationDelay = `${i * 14}ms`;
+        row.innerHTML = `
+      <div class="pos-cell">
+        <span class="pos-n ${pos <= 3 ? 'top' : ''}">${pos}</span>
+      </div>
+      <div class="team-info">
+        <div class="logo" style="background:${t.color}22;border:1px solid ${t.color}44;color:${t.color}">${t.abbr}</div>
+        <span class="tname">${t.name}</span>
+      </div>
+      <div class="pts">${t.pts}</div>
+      <div class="stat">${t.g}</div>`;
+        el.appendChild(row);
+      });
+    }
+
+    /* ── RENDER SCORES ── */
+    function renderScores() {
+      const s1 = calcScore(p1), s2 = calcScore(p2);
+
+      document.getElementById('score-p1').textContent = s1.total;
+      document.getElementById('score-p2').textContent = s2.total;
+      document.getElementById('breakdown-p1').textContent =
+        `pos:${s1.pos_total}pt  zona:${s1.zone_total}pt`;
+      document.getElementById('breakdown-p2').textContent =
+        `pos:${s2.pos_total}pt  zona:${s2.zone_total}pt`;
+    }
+
+    /* ── RENDER ALL ── */
+    function renderAll() {
+      renderPlayer(p1, 'col-p1', players.p1);
+      renderPlayer(p2, 'col-p2', players.p2);
+      renderReal();
+      renderScores();
+    }
+
+    /* ── PLAYER NAME EDIT ── */
+    function editName(n) {
+      const key = `p${n}`;
+      const cur = players[key];
+      const nw = prompt(`Nome ${n === 1 ? 'Giocatore 1' : 'Giocatore 2'}:`, cur);
+      if (!nw || !nw.trim()) return;
+      players[key] = nw.trim().toUpperCase();
+      document.getElementById(`p${n}-label`).innerHTML =
+        `<span class="player-name">${players[key]}</span>`;
+      document.getElementById(`col-p${n}-title`).textContent = players[key];
+      showToast(`Nome aggiornato: ${players[key]}`);
+    }
+
+    /* ── MODAL EDIT ── */
+    function openModal() {
+      const form = document.getElementById('edit-form');
+      form.innerHTML = '';
+      document.getElementById('edit-giornata').value = giornata;
+      real.forEach(t => {
+        const row = document.createElement('div');
+        row.className = 'form-row';
+        row.innerHTML = `
+      <label style="display:flex;align-items:center;gap:.4rem;">
+        <span style="width:8px;height:8px;border-radius:50%;background:${t.color};flex-shrink:0;display:inline-block;"></span>
+        ${t.name}
+      </label>
+      <input type="number" data-team="${t.name}" value="${t.pts}" min="0" max="114"/>`;
+        form.appendChild(row);
+      });
+      document.getElementById('modal-overlay').classList.add('open');
+    }
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.remove('open');
+    }
+    function saveModal() {
+      giornata = parseInt(document.getElementById('edit-giornata').value) || giornata;
+      document.querySelectorAll('#edit-form input[data-team]').forEach(inp => {
+        const name = inp.dataset.team;
+        const val = parseInt(inp.value) || 0;
+        const t = real.find(x => x.name === name);
+        if (t) { t.pts = val; t.g = giornata; }
+      });
+      // re-sort real by pts desc
+      real.sort((a, b) => b.pts - a.pts);
+      closeModal();
+      renderAll();
+      showToast(`Classifica aggiornata — Giornata ${giornata}`);
+    }
+
+    /* ── RESET ── */
+    function resetAll() {
+      if (!confirm('Resettare entrambe le previsioni?')) return;
+      real = JSON.parse(JSON.stringify(DEFAULT));
+      p1 = JSON.parse(JSON.stringify(DEFAULT));
+      p2 = JSON.parse(JSON.stringify(DEFAULT));
+      giornata = 28;
+      renderAll();
+      showToast('// reset completato');
+    }
+
+    /* ── TOAST ── */
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 1800);
+    }
+
+    /* close modal on overlay click */
+    document.getElementById('modal-overlay').addEventListener('click', function (e) {
+      if (e.target === this) closeModal();
+    });
+
+    renderAll();
+  </script>
+</body>
+
+</html>
