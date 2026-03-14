@@ -329,45 +329,101 @@
   <script>
     // ── CONFIG ────────────────────────────────────────────────────────────────────
     const API_TOKEN = 'f1076751716e48b79c72938870dff476';
-    const API_URL = 'https://api.football-data.org/v4/competitions/SA/standings';
+    const API_BASE  = 'https://api.football-data.org/v4/competitions/SA/standings';
 
-    // Proxy strategies: alcuni passano il token via URL, altri usano no-cors tricks
-    const PROXIES = [
-      // 1. allorigins — rimuoviamo il custom header e passiamo il token nell'URL
-      url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url + '?token=' + API_TOKEN)}`,
-      // 2. corsproxy.io senza header (token via query)
-      url => `https://corsproxy.io/?${encodeURIComponent(url + '?token=' + API_TOKEN)}`,
-      // 3. workers proxy pubblico
-      url => `https://proxy.cors.sh/${url}?token=${API_TOKEN}`,
-      // 4. Ultraproxy
-      url => `https://api.allorigins.win/get?url=${encodeURIComponent(url + '?token=' + API_TOKEN)}`,
-    ];
+    // ── FETCH — token via query param, nessun custom header → no preflight ────────
+    async function fetchStandingsData() {
+      const targetUrl = `${API_BASE}?token=${API_TOKEN}`;
+
+      // 1. allorigins /get — wrappa la risposta in { contents: "..." }
+      try {
+        const res = await fetch(
+          `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`,
+          { signal: AbortSignal.timeout(12000) }
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const wrapper = await res.json();
+        const data = JSON.parse(wrapper.contents);
+        if (data?.standings) { console.log('✓ allorigins /get'); return data; }
+        throw new Error('standings non trovato');
+      } catch (e) { console.warn('✗ allorigins /get:', e.message); }
+
+      // 2. allorigins /raw — restituisce direttamente il JSON
+      try {
+        const res = await fetch(
+          `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+          { signal: AbortSignal.timeout(12000) }
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (data?.standings) { console.log('✓ allorigins /raw'); return data; }
+        throw new Error('standings non trovato');
+      } catch (e) { console.warn('✗ allorigins /raw:', e.message); }
+
+      // 3. corsproxy.io — token in URL, nessun header custom
+      try {
+        const res = await fetch(
+          `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
+          { signal: AbortSignal.timeout(12000) }
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (data?.standings) { console.log('✓ corsproxy.io'); return data; }
+        throw new Error('standings non trovato');
+      } catch (e) { console.warn('✗ corsproxy.io:', e.message); }
+
+      // 4. jsonp.afeld.me — altro proxy pubblico senza preflight
+      try {
+        const res = await fetch(
+          `https://jsonp.afeld.me/?url=${encodeURIComponent(targetUrl)}`,
+          { signal: AbortSignal.timeout(12000) }
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (data?.standings) { console.log('✓ jsonp.afeld.me'); return data; }
+        throw new Error('standings non trovato');
+      } catch (e) { console.warn('✗ jsonp.afeld.me:', e.message); }
+
+      // 5. crossorigin.me
+      try {
+        const res = await fetch(
+          `https://crossorigin.me/${targetUrl}`,
+          { signal: AbortSignal.timeout(12000) }
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (data?.standings) { console.log('✓ crossorigin.me'); return data; }
+        throw new Error('standings non trovato');
+      } catch (e) { console.warn('✗ crossorigin.me:', e.message); }
+
+      throw new Error('Tutti i proxy hanno fallito — crea un Cloudflare Worker (vedi console)');
+    }
 
     // ── TEAM COLOR MAP ─────────────────────────────────────────────────────────────
     const TEAM_META = {
       'FC Internazionale Milano': { abbr: 'INT', color: '#0057A3', color2: '#000000' },
-      'AC Milan': { abbr: 'MIL', color: '#FB090B', color2: '#000000' },
-      'SSC Napoli': { abbr: 'NAP', color: '#008CFF', color2: '#FFFFFF' },
-      'Como 1907': { abbr: 'COM', color: '#003A8F', color2: '#FFFFFF' },
-      'AS Roma': { abbr: 'ROM', color: '#970A2C', color2: '#FBBA00' },
-      'Juventus FC': { abbr: 'JUV', color: '#000000', color2: '#FFFFFF' },
-      'Atalanta BC': { abbr: 'ATA', color: '#0055A4', color2: '#000000' },
-      'Bologna FC 1909': { abbr: 'BOL', color: '#9F1F33', color2: '#1D2A5B' },
-      'US Sassuolo Calcio': { abbr: 'SAS', color: '#00A651', color2: '#000000' },
-      'SS Lazio': { abbr: 'LAZ', color: '#85D8F8', color2: '#FFFFFF' },
-      'Udinese Calcio': { abbr: 'UDI', color: '#000000', color2: '#FFFFFF' },
-      'Parma Calcio 1913': { abbr: 'PAR', color: '#FFD100', color2: '#003087' },
-      'Genoa CFC': { abbr: 'GEN', color: '#AE1919', color2: '#05232F' },
-      'Cagliari Calcio': { abbr: 'CAG', color: '#B01028', color2: '#082242' },
-      'Torino FC': { abbr: 'TOR', color: '#881F19', color2: '#FFFFFF' },
-      'US Lecce': { abbr: 'LEC', color: '#FFED00', color2: '#E2001A' },
-      'ACF Fiorentina': { abbr: 'FIO', color: '#502D7F', color2: '#FFFFFF' },
-      'US Cremonese': { abbr: 'CRE', color: '#C4122E', color2: '#AFAFAF' },
-      'Hellas Verona FC': { abbr: 'VER', color: '#002F87', color2: '#FFD100' },
-      'AC Pisa 1909': { abbr: 'PSA', color: '#0055A4', color2: '#000000' },
-      'Venezia FC': { abbr: 'VEN', color: '#FF6600', color2: '#000000' },
-      'Empoli FC': { abbr: 'EMP', color: '#0066CC', color2: '#FFFFFF' },
-      'AC Monza': { abbr: 'MON', color: '#E60026', color2: '#FFFFFF' },
+      'AC Milan':                  { abbr: 'MIL', color: '#FB090B', color2: '#000000' },
+      'SSC Napoli':                { abbr: 'NAP', color: '#008CFF', color2: '#FFFFFF' },
+      'Como 1907':                 { abbr: 'COM', color: '#003A8F', color2: '#FFFFFF' },
+      'AS Roma':                   { abbr: 'ROM', color: '#970A2C', color2: '#FBBA00' },
+      'Juventus FC':               { abbr: 'JUV', color: '#000000', color2: '#FFFFFF' },
+      'Atalanta BC':               { abbr: 'ATA', color: '#0055A4', color2: '#000000' },
+      'Bologna FC 1909':           { abbr: 'BOL', color: '#9F1F33', color2: '#1D2A5B' },
+      'US Sassuolo Calcio':        { abbr: 'SAS', color: '#00A651', color2: '#000000' },
+      'SS Lazio':                  { abbr: 'LAZ', color: '#85D8F8', color2: '#FFFFFF' },
+      'Udinese Calcio':            { abbr: 'UDI', color: '#000000', color2: '#FFFFFF' },
+      'Parma Calcio 1913':         { abbr: 'PAR', color: '#FFD100', color2: '#003087' },
+      'Genoa CFC':                 { abbr: 'GEN', color: '#AE1919', color2: '#05232F' },
+      'Cagliari Calcio':           { abbr: 'CAG', color: '#B01028', color2: '#082242' },
+      'Torino FC':                 { abbr: 'TOR', color: '#881F19', color2: '#FFFFFF' },
+      'US Lecce':                  { abbr: 'LEC', color: '#FFED00', color2: '#E2001A' },
+      'ACF Fiorentina':            { abbr: 'FIO', color: '#502D7F', color2: '#FFFFFF' },
+      'US Cremonese':              { abbr: 'CRE', color: '#C4122E', color2: '#AFAFAF' },
+      'Hellas Verona FC':          { abbr: 'VER', color: '#002F87', color2: '#FFD100' },
+      'AC Pisa 1909':              { abbr: 'PSA', color: '#0055A4', color2: '#000000' },
+      'Venezia FC':                { abbr: 'VEN', color: '#FF6600', color2: '#000000' },
+      'Empoli FC':                 { abbr: 'EMP', color: '#0066CC', color2: '#FFFFFF' },
+      'AC Monza':                  { abbr: 'MON', color: '#E60026', color2: '#FFFFFF' },
     };
 
     function getMeta(name) {
@@ -376,7 +432,7 @@
       return { abbr: name.slice(0, 3).toUpperCase(), color: '#' + ((h & 0x888888) | 0x444444).toString(16).padStart(6, '0'), color2: '#ffffff' };
     }
 
-    // ── PREDICTIONS (names must match API names) ──────────────────────────────────
+    // ── PREDICTIONS ───────────────────────────────────────────────────────────────
     const PRED_NAMES = [
       [ // Ana
         'SSC Napoli', 'Juventus FC', 'AS Roma', 'FC Internazionale Milano', 'AC Milan',
@@ -438,7 +494,7 @@
       return `<div class="relative flex-shrink-0 flex items-center justify-center overflow-hidden" style="width:${size}px;height:${size}px;border-radius:${r};border:1px solid rgba(255,255,255,0.12)"><div class="logo-half logo-left" style="background:${t.color}"></div><div class="logo-half logo-right" style="background:${t.color2}"></div><span class="logo-abbr">${t.abbr}</span></div>`;
     }
 
-    // ── BUILD PREDS FROM REAL ────────────────────────────────────────────────────
+    // ── BUILD PREDS FROM REAL ─────────────────────────────────────────────────────
     function buildPreds() {
       const byName = {};
       real.forEach(t => byName[t.name] = t);
@@ -462,16 +518,16 @@
         row.style.cssText = `grid-template-columns:44px 1fr 38px 52px;animation-delay:${i * 10}ms`;
         row.draggable = true; row.dataset.idx = i;
         row.innerHTML = `
-      <div class="flex flex-col items-center leading-none">
-        <span class="font-condensed font-bold text-[1.05rem] ${pos <= 3 ? 'text-text1' : 'text-text2'}">${pos}</span>
-        ${deltaHtml(diff)}
-      </div>
-      <div class="flex items-center gap-2 min-w-0">
-        ${logoHtml(t)}
-        <span class="text-[.82rem] font-semibold whitespace-nowrap overflow-hidden text-ellipsis">${t.shortName || t.name}</span>
-      </div>
-      <div class="font-condensed font-bold text-[1rem] text-center">${t.pts ?? '—'}</div>
-      ${rowScoreHtml(s)}`;
+          <div class="flex flex-col items-center leading-none">
+            <span class="font-condensed font-bold text-[1.05rem] ${pos <= 3 ? 'text-text1' : 'text-text2'}">${pos}</span>
+            ${deltaHtml(diff)}
+          </div>
+          <div class="flex items-center gap-2 min-w-0">
+            ${logoHtml(t)}
+            <span class="text-[.82rem] font-semibold whitespace-nowrap overflow-hidden text-ellipsis">${t.shortName || t.name}</span>
+          </div>
+          <div class="font-condensed font-bold text-[1rem] text-center">${t.pts ?? '—'}</div>
+          ${rowScoreHtml(s)}`;
         row.addEventListener('dragstart', e => { dragSrc = i; row.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
         row.addEventListener('dragend', () => { row.classList.remove('dragging'); el.querySelectorAll('.team-row').forEach(r => r.classList.remove('drag-over')); });
         row.addEventListener('dragover', e => { e.preventDefault(); el.querySelectorAll('.team-row').forEach(r => r.classList.remove('drag-over')); row.classList.add('drag-over'); });
@@ -495,15 +551,15 @@
         row.className = `real-row ${zClass(pos)} grid items-center px-4 py-2 border-b border-white/[0.03]`;
         row.style.cssText = `grid-template-columns:36px 1fr 38px 34px;animation-delay:${i * 10}ms`;
         row.innerHTML = `
-      <div class="flex flex-col items-center leading-none">
-        <span class="font-condensed font-bold text-[1.05rem] ${pos <= 3 ? 'text-text1' : 'text-text2'}">${pos}</span>
-      </div>
-      <div class="flex items-center gap-2 min-w-0">
-        ${logoHtml(t)}
-        <span class="text-[.82rem] font-semibold whitespace-nowrap overflow-hidden text-ellipsis">${t.shortName || t.name}</span>
-      </div>
-      <div class="font-condensed font-bold text-[1rem] text-center">${t.pts}</div>
-      <div class="text-[.76rem] text-center text-text2">${t.g}</div>`;
+          <div class="flex flex-col items-center leading-none">
+            <span class="font-condensed font-bold text-[1.05rem] ${pos <= 3 ? 'text-text1' : 'text-text2'}">${pos}</span>
+          </div>
+          <div class="flex items-center gap-2 min-w-0">
+            ${logoHtml(t)}
+            <span class="text-[.82rem] font-semibold whitespace-nowrap overflow-hidden text-ellipsis">${t.shortName || t.name}</span>
+          </div>
+          <div class="font-condensed font-bold text-[1rem] text-center">${t.pts}</div>
+          <div class="text-[.76rem] text-center text-text2">${t.g}</div>`;
         el.appendChild(row);
       });
     }
@@ -518,31 +574,6 @@
     }
     function renderAll() { renderPred(); renderReal(); renderScore(); }
 
-    // ── FETCH WITH PROXY FALLBACK ─────────────────────────────────────────────────
-    async function fetchWithFallback(url) {
-      let lastErr;
-      for (let i = 0; i < PROXIES.length; i++) {
-        const proxyUrl = PROXIES[i](url);
-        try {
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 8000);
-          const res = await fetch(proxyUrl, { signal: controller.signal });
-          clearTimeout(timeout);
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          let data = await res.json();
-          // allorigins /get wrappa in { contents: "..." }
-          if (data && data.contents) data = JSON.parse(data.contents);
-          if (!data.standings) throw new Error('Risposta non valida');
-          console.log(`✓ proxy ${i + 1} ok`);
-          return data;
-        } catch (err) {
-          console.warn(`✗ proxy ${i + 1} fallito:`, err.message);
-          lastErr = err;
-        }
-      }
-      throw lastErr || new Error('Tutti i proxy hanno fallito');
-    }
-
     // ── FETCH LIVE STANDINGS ──────────────────────────────────────────────────────
     async function fetchStandings() {
       const btn = document.getElementById('btn-refresh');
@@ -553,7 +584,7 @@
       badge.className = 'font-mono text-[.58rem] tracking-[.1em] border rounded px-2 py-0.5 border-yellow/30 text-yellow transition-all duration-300';
 
       try {
-        const data = await fetchWithFallback(API_URL);
+        const data = await fetchStandingsData();
 
         const table = data.standings.find(s => s.type === 'TOTAL').table;
         const giornata = data.season?.currentMatchday ?? '—';
@@ -584,14 +615,48 @@
         badge.className = 'font-mono text-[.58rem] tracking-[.1em] border rounded px-2 py-0.5 border-red/30 text-red transition-all duration-300';
         if (!apiLoaded) {
           document.getElementById('loading-real').innerHTML = `
-        <div class="text-center px-4 py-6">
-          <div class="text-red text-2xl mb-2">⚠</div>
-          <p class="font-mono text-[.58rem] text-text3 tracking-wide leading-loose">Impossibile caricare la classifica.<br/>Controlla la connessione e riprova.</p>
-        </div>`;
+            <div class="text-center px-4 py-6">
+              <div class="text-red text-2xl mb-2">⚠</div>
+              <p class="font-mono text-[.58rem] text-text3 tracking-wide leading-loose">
+                Impossibile caricare la classifica.<br/>
+                Soluzione definitiva: crea un Cloudflare Worker gratuito<br/>
+                (vedi istruzioni in console → F12).
+              </p>
+            </div>`;
           document.getElementById('col-pred').innerHTML = `
-        <div class="text-center px-4 py-6">
-          <p class="font-mono text-[.58rem] text-text3 tracking-wide">In attesa dei dati…</p>
-        </div>`;
+            <div class="text-center px-4 py-6">
+              <p class="font-mono text-[.58rem] text-text3 tracking-wide">In attesa dei dati…</p>
+            </div>`;
+          console.info(`
+%c📋 SOLUZIONE DEFINITIVA — Cloudflare Worker (gratis)
+%c
+1. Vai su https://workers.cloudflare.com e crea un account gratuito
+2. Crea un nuovo Worker e incolla questo codice:
+
+export default {
+  async fetch(request) {
+    const res = await fetch(
+      'https://api.football-data.org/v4/competitions/SA/standings',
+      { headers: { 'X-Auth-Token': 'f1076751716e48b79c72938870dff476' } }
+    );
+    const data = await res.json();
+    return new Response(JSON.stringify(data), {
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      }
+    });
+  }
+}
+
+3. Deploy e copia l'URL (es: https://serie-a-proxy.tuonome.workers.dev)
+4. In questo file, sostituisci fetchStandingsData() con:
+
+async function fetchStandingsData() {
+  const res = await fetch('https://TUO-WORKER-URL.workers.dev');
+  return res.json();
+}
+`, 'color:#00ff88;font-weight:bold;font-size:14px', 'color:#7a8299');
         }
         showToast('✗ ' + err.message, 'red');
       } finally {
