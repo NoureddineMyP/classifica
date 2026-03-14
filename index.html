@@ -331,12 +331,16 @@
     const API_TOKEN = 'f1076751716e48b79c72938870dff476';
     const API_URL = 'https://api.football-data.org/v4/competitions/SA/standings';
 
-    // Multiple CORS proxies to try in order
+    // Proxy strategies: alcuni passano il token via URL, altri usano no-cors tricks
     const PROXIES = [
-      url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-      url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-      url => `https://thingproxy.freeboard.io/fetch/${url}`,
-      url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+      // 1. allorigins — rimuoviamo il custom header e passiamo il token nell'URL
+      url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url + '?token=' + API_TOKEN)}`,
+      // 2. corsproxy.io senza header (token via query)
+      url => `https://corsproxy.io/?${encodeURIComponent(url + '?token=' + API_TOKEN)}`,
+      // 3. workers proxy pubblico
+      url => `https://proxy.cors.sh/${url}?token=${API_TOKEN}`,
+      // 4. Ultraproxy
+      url => `https://api.allorigins.win/get?url=${encodeURIComponent(url + '?token=' + API_TOKEN)}`,
     ];
 
     // ── TEAM COLOR MAP ─────────────────────────────────────────────────────────────
@@ -515,24 +519,24 @@
     function renderAll() { renderPred(); renderReal(); renderScore(); }
 
     // ── FETCH WITH PROXY FALLBACK ─────────────────────────────────────────────────
-    async function fetchWithFallback(url, headers) {
+    async function fetchWithFallback(url) {
       let lastErr;
       for (let i = 0; i < PROXIES.length; i++) {
         const proxyUrl = PROXIES[i](url);
         try {
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 8000);
-          const res = await fetch(proxyUrl, {
-            headers,
-            signal: controller.signal
-          });
+          const res = await fetch(proxyUrl, { signal: controller.signal });
           clearTimeout(timeout);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = await res.json();
-          console.log(`✓ proxy ${i + 1} (${proxyUrl.split('?')[0]}) worked`);
+          let data = await res.json();
+          // allorigins /get wrappa in { contents: "..." }
+          if (data && data.contents) data = JSON.parse(data.contents);
+          if (!data.standings) throw new Error('Risposta non valida');
+          console.log(`✓ proxy ${i + 1} ok`);
           return data;
         } catch (err) {
-          console.warn(`✗ proxy ${i + 1} failed:`, err.message);
+          console.warn(`✗ proxy ${i + 1} fallito:`, err.message);
           lastErr = err;
         }
       }
@@ -549,7 +553,7 @@
       badge.className = 'font-mono text-[.58rem] tracking-[.1em] border rounded px-2 py-0.5 border-yellow/30 text-yellow transition-all duration-300';
 
       try {
-        const data = await fetchWithFallback(API_URL, { 'X-Auth-Token': API_TOKEN });
+        const data = await fetchWithFallback(API_URL);
 
         const table = data.standings.find(s => s.type === 'TOTAL').table;
         const giornata = data.season?.currentMatchday ?? '—';
